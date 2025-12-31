@@ -89,8 +89,6 @@
 
 ## utilities
 
-- [sampling utilities](sampling.py)
-- [union-find implementation](unionfind.py)
 - [sklearn datasets](sklearn.datasets.ipynb)
 - [sklearn linear models](sklearn.linear_model1.ipynb) | [part 2](sklearn.linear_model2.ipynb)
 
