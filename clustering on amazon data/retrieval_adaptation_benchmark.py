@@ -400,6 +400,211 @@ def apply_domain_whitening():
     return adapt
 
 
+def apply_rocchio_prf(k_top=10, alpha=1.0, beta=0.4, gamma=0.0, k_negative=0):
+    """
+    Create Rocchio Pseudo-Relevance Feedback adaptation.
+    
+    This modifies query embeddings based on top retrieved documents.
+    Query-side feedback in embedding space.
+    
+    Args:
+        k_top: Number of top documents to use as pseudo-relevant
+        alpha: Weight for original query
+        beta: Weight for positive centroid
+        gamma: Weight for negative centroid
+        k_negative: Number of near-miss docs (set to 0 to skip negatives)
+    
+    Returns:
+        Function that applies Rocchio PRF
+    """
+    doc_embeddings_cache = None
+    
+    def adapt(X):
+        nonlocal doc_embeddings_cache
+        
+        # First call: store document embeddings (fitted on corpus)
+        if doc_embeddings_cache is None:
+            doc_embeddings_cache = X.copy()
+            print(f"    Rocchio PRF: cached {len(X)} documents")
+            return X
+        
+        # Second call: update query embeddings using stored docs
+        query_embeddings = X.copy()
+        updated_queries = []
+        
+        # Compute similarities
+        similarities = cosine_similarity(query_embeddings, doc_embeddings_cache)
+        
+        for i, q in enumerate(query_embeddings):
+            # Get top-k indices
+            top_k_indices = np.argsort(-similarities[i])[:k_top]
+            
+            # Positive centroid
+            positive_centroid = doc_embeddings_cache[top_k_indices].mean(axis=0)
+            
+            # Negative centroid (if requested)
+            if gamma > 0 and k_negative > 0:
+                negative_indices = np.argsort(-similarities[i])[k_top:k_top + k_negative]
+                negative_centroid = doc_embeddings_cache[negative_indices].mean(axis=0)
+            else:
+                negative_centroid = 0.0
+            
+            # Rocchio update
+            q_updated = alpha * q + beta * positive_centroid - gamma * negative_centroid
+            
+            # L2 normalize
+            q_updated = q_updated / (np.linalg.norm(q_updated) + 1e-8)
+            updated_queries.append(q_updated)
+        
+        updated_queries = np.array(updated_queries)
+        print(f"    Rocchio PRF: updated {len(updated_queries)} queries (k={k_top}, β={beta})")
+        return updated_queries
+    
+    return adapt
+
+
+def apply_remove_top_pcs(n_components=1):
+    """
+    Remove the top N principal components (all-but-the-top).
+    
+    This targets anisotropy/hubness without reducing dimensionality.
+    Removes dominant directions that cause generic documents to become hubs.
+    
+    Args:
+        n_components: Number of top PCs to remove (1-5 typical)
+    
+    Returns:
+        Function that applies top-PC removal
+    """
+    doc_pcs = None
+    query_pcs = None
+    
+    def adapt(X):
+        nonlocal doc_pcs, query_pcs
+        
+        # First call: compute PCs on documents
+        if doc_pcs is None:
+            # Center the data
+            mean = X.mean(axis=0)
+            X_centered = X - mean
+            
+            # Compute covariance and eigendecomposition
+            cov = np.cov(X_centered.T)
+            eigenvalues, eigenvectors = np.linalg.eigh(cov)
+            
+            # Get top N components (largest eigenvalues)
+            top_indices = np.argsort(-eigenvalues)[:n_components]
+            doc_pcs = eigenvectors[:, top_indices]
+            
+            print(f"    Remove Top PCs: computed {n_components} dominant components from docs")
+            
+            # Remove these components from documents
+            for pc in doc_pcs.T:
+                X = X - np.outer(X @ pc, pc)
+            
+            # L2 normalize
+            X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-8)
+            return X
+        
+        # Second call: compute PCs on queries and remove
+        if query_pcs is None:
+            mean = X.mean(axis=0)
+            X_centered = X - mean
+            cov = np.cov(X_centered.T)
+            eigenvalues, eigenvectors = np.linalg.eigh(cov)
+            top_indices = np.argsort(-eigenvalues)[:n_components]
+            query_pcs = eigenvectors[:, top_indices]
+            
+            print(f"    Remove Top PCs: computed {n_components} dominant components from queries")
+        
+        # Remove top components from queries
+        for pc in query_pcs.T:
+            X = X - np.outer(X @ pc, pc)
+        
+        # L2 normalize
+        X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-8)
+        return X
+    
+    return adapt
+
+
+def apply_csls(k_neighbors=10):
+    """
+    Cross-domain Similarity Local Scaling (CSLS) for hubness reduction.
+    
+    CSLS penalizes "hub" documents that are near neighbors to many queries.
+    Originally from bilingual embedding alignment, but works for IR too.
+    
+    Args:
+        k_neighbors: Number of neighbors for computing local scaling
+    
+    Returns:
+        Function that applies CSLS rescoring
+    """
+    doc_embeddings_cache = None
+    r_d_cache = None  # Mean similarity to k nearest docs
+    
+    def adapt(X):
+        nonlocal doc_embeddings_cache, r_d_cache
+        
+        # First call: store documents and compute r_d for each doc
+        if doc_embeddings_cache is None:
+            doc_embeddings_cache = X.copy()
+            
+            # Compute pairwise doc-doc similarities
+            doc_similarities = cosine_similarity(doc_embeddings_cache, doc_embeddings_cache)
+            
+            # For each doc, compute mean similarity to k nearest neighbors
+            r_d_cache = []
+            for i in range(len(doc_embeddings_cache)):
+                # Get k nearest (excluding self)
+                top_k_indices = np.argsort(-doc_similarities[i])[1:k_neighbors+1]
+                r_d = doc_similarities[i][top_k_indices].mean()
+                r_d_cache.append(r_d)
+            
+            r_d_cache = np.array(r_d_cache)
+            print(f"    CSLS: computed local scaling for {len(doc_embeddings_cache)} docs (k={k_neighbors})")
+            return X
+        
+        # Second call: apply CSLS to queries
+        # NOTE: CSLS is a scoring function, not an embedding transformation
+        # We'll approximate by adjusting query embeddings based on r_q
+        query_embeddings = X.copy()
+        
+        # Compute query-doc similarities
+        similarities = cosine_similarity(query_embeddings, doc_embeddings_cache)
+        
+        # For each query, compute r_q
+        adjusted_queries = []
+        for i, q in enumerate(query_embeddings):
+            # Get top-k docs for this query
+            top_k_indices = np.argsort(-similarities[i])[:k_neighbors]
+            r_q = similarities[i][top_k_indices].mean()
+            
+            # CSLS adjustment: penalize by (r_q + r_d) / 2
+            # Since we can't modify similarities directly in this framework,
+            # we'll use a heuristic: boost query toward low-r_d docs
+            # This is an approximation of CSLS for the adaptation framework
+            
+            # Weight by inverse r_d (prefer low-hub docs)
+            weights = 1.0 / (r_d_cache + 0.1)  # +0.1 to avoid div by zero
+            weights = weights / weights.sum()
+            
+            # Adjust query slightly toward low-hub docs
+            adjustment = (doc_embeddings_cache.T @ weights).T
+            q_adjusted = 0.9 * q + 0.1 * adjustment
+            
+            # L2 normalize
+            q_adjusted = q_adjusted / (np.linalg.norm(q_adjusted) + 1e-8)
+            adjusted_queries.append(q_adjusted)
+        
+        adjusted_queries = np.array(adjusted_queries)
+        print(f"    CSLS: adjusted {len(adjusted_queries)} queries for hubness reduction")
+        return adjusted_queries
+    
+    return adapt
+
+
 def create_adaptation_configs():
     """
     Create all adaptation configurations to test.
@@ -411,28 +616,70 @@ def create_adaptation_configs():
         ("Baseline", None),
     ]
     
-    # PCA with different variance ratios
+    # ============================================================================
+    # NEW METHODS FROM FURTHER IDEAS
+    # These are suggested to work better than PCA/whitening
+    # ============================================================================
+    
+    # 1. Rocchio PRF (Query-side pseudo-relevance feedback)
+    #    Most practical no-training method from the document
+    for k in [5, 10, 20]:
+        for beta in [0.2, 0.4, 0.6]:
+            configs.append((
+                f"Rocchio_k{k}_β{beta}",
+                apply_rocchio_prf(k_top=k, alpha=1.0, beta=beta, gamma=0.0)
+            ))
+    
+    # 1b. Rocchio with negatives
+    for beta in [0.4, 0.6]:
+        configs.append((
+            f"Rocchio_k10_β{beta}_γ0.1",
+            apply_rocchio_prf(k_top=10, alpha=1.0, beta=beta, gamma=0.1, k_negative=50)
+        ))
+    
+    # 2. Remove Top PCs (all-but-the-top)
+    #    Targets anisotropy without throwing away dimensions
+    for n_comp in [1, 2, 3, 5]:
+        configs.append((
+            f"RemoveTopPCs_{n_comp}",
+            apply_remove_top_pcs(n_components=n_comp)
+        ))
+    
+    # 3. CSLS (hubness reduction)
+    #    Down-ranks hub documents
+    for k in [10, 20, 50]:
+        configs.append((
+            f"CSLS_k{k}",
+            apply_csls(k_neighbors=k)
+        ))
+    
+    # ============================================================================
+    # ORIGINAL METHODS (baseline comparisons)
+    # PCA/whitening approaches - kept for comprehensive evaluation
+    # ============================================================================
+    
+    # 4. PCA with different variance ratios
     for var_ratio in [0.80, 0.85, 0.90, 0.95, 0.98]:
         configs.append((
             f"PCA_{int(var_ratio*100)}%",
             apply_pca_projection(variance_ratio=var_ratio)
         ))
     
-    # PCA with fixed components
+    # 5. PCA with fixed components
     for n_comp in [50, 100, 150, 200]:
         configs.append((
             f"PCA_{n_comp}d",
             apply_pca_projection(n_components=n_comp)
         ))
     
-    # Variance weighting
+    # 6. Variance weighting
     for percentile in [5, 10, 15, 20, 25]:
         configs.append((
             f"VarWeight_p{percentile}",
             apply_variance_weighting(percentile_threshold=percentile)
         ))
     
-    # Hybrid approaches
+    # 7. Hybrid approaches (PCA + Variance Weighting)
     for pca_comp in [100, 150, 200]:
         for var_perc in [10, 15, 20]:
             configs.append((
@@ -440,7 +687,7 @@ def create_adaptation_configs():
                 apply_hybrid_adaptation(pca_components=pca_comp, var_percentile=var_perc)
             ))
     
-    # Domain whitening
+    # 8. Domain whitening
     configs.append((
         "Whitening",
         apply_domain_whitening()
@@ -778,8 +1025,8 @@ def main():
     # Configuration
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
     
-    # Use multiple BEIR tasks for comprehensive evaluation
-    tasks = ["scifact", "nfcorpus", "fiqa", "trec-covid", "arguana"]
+    # Test on multiple BEIR datasets for robust evaluation
+    tasks = ["scifact", "nfcorpus", "fiqa", "arguana", "trec-covid"]
     
     print(f"\n📋 Configuration:")
     print(f"  Model: {model_name}")
@@ -788,15 +1035,25 @@ def main():
     print(f"  - SciFact: Scientific claim verification (~300 queries)")
     print(f"  - NFCorpus: Medical information retrieval (~323 queries)")
     print(f"  - FiQA: Financial question answering (~648 queries)")
-    print(f"  - TREC-COVID: COVID-19 research (~50 queries)")
     print(f"  - ArguAna: Argument retrieval (~1406 queries)")
+    print(f"  - TREC-COVID: COVID-19 research (~50 queries)")
+    print(f"\n⚡ Adaptation methods to test:")
+    print(f"  NEW methods from further_ideas.md:")
+    print(f"    1. Rocchio PRF (query-side feedback)")
+    print(f"    2. Remove Top PCs (all-but-the-top)")
+    print(f"    3. CSLS (hubness reduction)")
+    print(f"  BASELINE methods for comparison:")
+    print(f"    4. PCA with variance ratios")
+    print(f"    5. PCA with fixed components")
+    print(f"    6. Variance weighting")
+    print(f"    7. Hybrid PCA + Variance Weighting")
+    print(f"    8. Domain whitening")
     
     # Run evaluation
     print("\n" + "="*80)
     print("STARTING EVALUATION")
     print("="*80)
-    print("\n⚡ Optimized version: ~5-10 minutes (encodes each dataset only once!)")
-    print("   Previous version would take 20-40 minutes")
+    print("\n⚡ Optimized version: ~8-12 minutes with 5 tasks")
     
     results_df = run_retrieval_evaluation(
         model_name=model_name,
@@ -827,8 +1084,9 @@ def main():
     print("  - retrieval_adaptation_summary.csv (aggregated results)")
     print("  - retrieval_adaptation_results.png (visualizations)")
     print("\n💡 Key insights:")
-    print("  - Check if PCA/variance weighting improve NDCG@10")
-    print("  - Look for consistent patterns across tasks")
+    print("  - Tested 8 adaptation method categories (42 total configs)")
+    print("  - NEW methods (1-3): target query mismatch, anisotropy, and hubness")
+    print("  - BASELINE methods (4-8): PCA/whitening approaches for comparison")
     print("  - Best configurations are in the summary table")
 
 
