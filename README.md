@@ -34,6 +34,7 @@
 ## deep learning
 
 ### computer vision
+- [MNIST generation with DDIM (2020), plain PyTorch on CPU](ddim_mnist/)
 - [bayesian approach for handwritten digits](handwritten%20digits/Bayesian%20for%20handwritten%20digits.ipynb)
 - [decision trees for handwritten digits](handwritten%20digits/Classification%20of%20handwritten%20digits%20via%20decision%20trees.ipynb)
 - [mnist with tensorflow](handwritten%20digits/MNIST%20Tensorflow%20beginner.ipynb)
