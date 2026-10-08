@@ -1,100 +1,142 @@
-# data science
+# Data science learning projects
 
-> a collection of learning projects and experiments
+A personal collection of notebooks, small implementations, and experiments built
+while learning data science. Started years ago and occasionally extended with
+new examples, from statistical tests and classical machine learning to language
+models and image generation.
 
----
+Browse by topic:
 
-## machine learning
+- [Statistics and probability](#statistics-and-probability)
+- [Classification and regression](#classification-and-regression)
+- [Clustering and dimensionality reduction](#clustering-and-dimensionality-reduction)
+- [Text and language](#text-and-language)
+- [Images and generative models](#images-and-generative-models)
+- [Time series](#time-series)
+- [Applied projects and competitions](#applied-projects-and-competitions)
+- [Evaluation and library reference](#evaluation-and-library-reference)
 
-### supervised learning
+## Statistics and probability
 
-**classification**
-- [binary classifier evaluation](Evaluation%20of%20binary%20classifiers.ipynb)
-- [classifier comparison on gaussian blobs](classifier%20comparison%20on%20gaussian%20blobs.ipynb)
-- [confusion matrix utilities](classification/)
+- [Statistical inference notebooks](statistics/) — confidence intervals,
+  bootstrap, hypothesis tests, correlation, regression, and multiple testing.
+- [Statistical testing in Python](statistics_testing/) — standalone examples
+  of t-tests, proportion tests, bootstrap intervals, and A/B testing.
+- [SciPy statistics: part 1](scipy.stats.ipynb) and
+  [part 2](scipy.stats2.ipynb) — explorations of probability distributions and
+  statistical functions.
 
-**regression**
-- [gradient boosting on boston house prices](Gradient%20boosting%20implementation,%20XGBoost%20(boston%20house%20prices).ipynb)
-- [linear regression & sgd implementation](LR%20and%20SGD%20implementation.ipynb)
-- [linear regression on height-weight dataset](LR%20height%20woight%20data%20set.ipynb)
-- [house pricing test assignment](test_assingment%20(house%20pricing).ipynb)
+## Classification and regression
 
-### unsupervised learning
+- [Linear regression and SGD from scratch](LR%20and%20SGD%20implementation.ipynb)
+  — learning the algorithms through their implementation.
+- [Height–weight regression](LR%20height%20woight%20data%20set.ipynb)
+  — a small regression experiment.
+- [Classifier comparison on Gaussian blobs](classifier%20comparison%20on%20gaussian%20blobs.ipynb)
+  — comparing decision boundaries on synthetic data.
+- [Gradient boosting and XGBoost](Gradient%20boosting%20implementation,%20XGBoost%20%28boston%20house%20prices%29.ipynb)
+  — boosting experiments using the Boston house prices dataset.
+- [Wine quality with a neural network](Neural%20network%20for%20wine%20quality%20prediction.ipynb)
+  — a neural network applied to tabular data.
 
-**clustering**
-- [clustering on amazon reviews](clustering%20on%20amazon%20data/)
-- [meanshift clustering on foursquare data](clustering%20on%20foursquare%20data/)
-- [handwritten digits visualization & clustering](handwritten%20digits/Data%20visualization%20and%20clustering%20on%20the%20handwritten%20digits.ipynb)
+## Clustering and dimensionality reduction
 
-**dimensionality reduction**
-- [principal component analysis](Principal%20component%20analysis.ipynb)
+- [Principal component analysis](Principal%20component%20analysis.ipynb)
+  — exploring dimensionality reduction.
+- [Clustering and retrieval on Amazon reviews](clustering%20on%20amazon%20data/)
+  — text embeddings, clustering comparisons, dimensionality reduction,
+  retrieval adaptation, and custom metrics.
+- [MeanShift on Foursquare data](clustering%20on%20foursquare%20data/)
+  — a clustering application using location data.
+- [Visualizing and clustering handwritten digits](handwritten%20digits/Data%20visualization%20and%20clustering%20on%20the%20handwritten%20digits.ipynb)
+  — exploring the structure of digit data.
+- [Document clustering](text%20analytics/Documents%20clustering%20examples.ipynb)
+  — grouping text documents by similarity.
 
----
+## Text and language
 
-## deep learning
+### Classification, embeddings, and topic modelling
 
-### computer vision
-- [MNIST generation with DDIM (2020), plain PyTorch on CPU](ddim_mnist/)
-- [bayesian approach for handwritten digits](handwritten%20digits/Bayesian%20for%20handwritten%20digits.ipynb)
-- [decision trees for handwritten digits](handwritten%20digits/Classification%20of%20handwritten%20digits%20via%20decision%20trees.ipynb)
-- [mnist with tensorflow](handwritten%20digits/MNIST%20Tensorflow%20beginner.ipynb)
-- [vgg16 implementation](handwritten%20digits/Tensorflow%20vgg16.ipynb)
-- [notmnist with tensorflow](notmnist%20tensorflow/)
+- [Text analytics](text%20analytics/) — sentiment analysis on movie reviews,
+  SMS spam classification, and word2vec experiments.
+- [Enron email classification](enron/) — email classification experiments,
+  including a word2vec approach.
+- [Topic modelling](topic%20modelling/) — LDA, gensim, and BigARTM examples
+  using recipes, lectures, and other text collections.
 
-### natural language processing
-- [elman rnn](elman%20rnn/)
-- [char-rnn for shakespeare & shevchenko](rnn/)
-- [lstm experiments](rnn/)
-- [enron email classification](enron/)
-- [text analytics projects](text%20analytics/)
-- [topic modelling with lda & bigartm](topic%20modelling/)
-- [language model experiments](lm/)
+### Recurrent networks and language model basics
 
-### neural networks
-- [wine quality prediction](Neural%20network%20for%20wine%20quality%20prediction.ipynb)
-- [variational autoencoder](vae/)
+- [Elman recurrent network](elman%20rnn/) — an early recurrent network example.
+- [Character RNNs and LSTMs](rnn/) — sequence modelling experiments,
+  including Shakespeare and Shevchenko text generation.
+- [Tokenization and sampling](lm/) — byte-pair encoding and language model
+  sampling implementations.
 
----
+## Images and generative models
 
-## time series
+### Digit recognition
 
-- [australian wine sales prediction](autocorrelation/australian%20wine%20sales%20prediction.ipynb)
-- [russian wages prediction](autocorrelation/russian%20wages%20prediction.ipynb)
+These examples compare classical classifiers and neural networks on image data.
 
----
+- [Bayesian digit classification](handwritten%20digits/Bayesian%20for%20handwritten%20digits.ipynb)
+- [Digit classification with decision trees](handwritten%20digits/Classification%20of%20handwritten%20digits%20via%20decision%20trees.ipynb)
+- [MNIST with TensorFlow](handwritten%20digits/MNIST%20Tensorflow%20beginner.ipynb)
+- [VGG16 experiment](handwritten%20digits/Tensorflow%20vgg16.ipynb)
+- [notMNIST with TensorFlow](notmnist%20tensorflow/) — data exploration,
+  linear models, multilayer networks, and convolutional networks.
 
-## kaggle competitions
+### Generative models
 
-- [bike sharing demand](kaggle%20bike%20sharing%20demand/)
-- [prudential life insurance](kaggle%20prudention%20life%20insurance/)
-- [titanic problem](kaggle%20titanic%20problem/)
-- [university of melbourne grant applications](kaggle%20university%20of%20melbourne%20grant%20applications/)
+- [Variational autoencoder](vae/) — a VAE learning notebook.
+- [MNIST generation with DDIM (2020)](ddim_mnist/) — a small U-Net and
+  diffusion formulas in plain PyTorch, CPU training, and deterministic sampling.
+  Includes a [generated digit grid](ddim_mnist/examples/) from a 20-epoch run.
 
----
+## Time series
 
-## statistics & testing
+- [Australian wine sales](autocorrelation/australian%20wine%20sales%20prediction.ipynb)
+- [Russian wages](autocorrelation/russian%20wages%20prediction.ipynb)
 
-- [statistical tests collection](statistics/)
-- [hypothesis testing examples](statistics_testing/)
-- [scipy stats exploration](scipy.stats.ipynb)
-- [scipy stats 2](scipy.stats2.ipynb)
+## Applied projects and competitions
 
----
+Projects organized around a dataset or prediction task, often combining
+exploration, preprocessing, model fitting, and comparison.
 
-## evaluation & metrics
+- [Bike sharing demand](kaggle%20bike%20sharing%20demand/) — rental demand
+  exploration and prediction with several regression methods.
+- [Titanic survival](kaggle%20titanic%20problem/) — random forests, XGBoost,
+  SVMs, and other survival prediction experiments.
+- [Prudential life insurance](kaggle%20prudention%20life%20insurance/)
+  — data visualization and exploration.
+- [University of Melbourne grant applications](kaggle%20university%20of%20melbourne%20grant%20applications/)
+  — preprocessing and logistic regression.
+- [House price prediction assignment](test_assingment%20%28house%20pricing%29.ipynb)
+  — a separate house pricing exercise.
 
-- [sklearn metrics exploration](sklearn.metrics.ipynb)
-- [recommendation metrics](recommendations%20metrics/)
+## Evaluation and library reference
 
----
+### Metrics and model evaluation
 
-## utilities
+- [Binary classifier evaluation](Evaluation%20of%20binary%20classifiers.ipynb)
+- [Confusion matrix utilities](classification/) — binary and multiclass examples.
+- [Recommendation metrics](recommendations%20metrics/) — metric implementations
+  and an example of their use.
+- [scikit-learn metrics](sklearn.metrics.ipynb)
 
-- [sklearn datasets](sklearn.datasets.ipynb)
-- [sklearn linear models](sklearn.linear_model1.ipynb) | [part 2](sklearn.linear_model2.ipynb)
+### Library explorations and supporting data
 
----
+- [scikit-learn datasets](sklearn.datasets.ipynb)
+- [scikit-learn linear models: part 1](sklearn.linear_model1.ipynb) and
+  [part 2](sklearn.linear_model2.ipynb)
+- [Supporting datasets](resources/)
 
-## resources
+## Running the examples
 
-[additional resources](resources/)
+Most older projects are Jupyter notebooks; newer examples also include plain
+Python scripts. Open the notebook or folder you want to explore and check its
+imports, local data paths, and any project-specific README or requirements file.
+Dependencies vary across projects. Older notebooks may need adjustments for
+current library versions. Examples with their own setup instructions include
+[DDIM MNIST](ddim_mnist/README.md),
+[statistical testing](statistics_testing/README.md), and
+[Amazon review clustering](clustering%20on%20amazon%20data/README.md).
